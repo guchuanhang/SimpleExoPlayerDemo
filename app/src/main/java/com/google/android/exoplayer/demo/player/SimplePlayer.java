@@ -53,8 +53,9 @@ public class SimplePlayer implements
     private static SimplePlayer servicePlayer;
     public static final String ACTION_PLAY_STUTUS = "play status";
     public static final String KEY_STATUS = "play status";
-    public static final String KEY_ADDRESS = "play address";
     public static final String KEY_SWITCH = "audio switch";
+    public static final String KEY_IS_NEXT = "to next";
+    public static final String KEY_START_PLAY = "start play";
 
     private SimplePlayer() {
         appContext = ExoApplication.getApplication();
@@ -93,6 +94,7 @@ public class SimplePlayer implements
             if (player == null) {
                 preparePlayer(true);
             }
+            sendPlayStatusBroadcast(true, false,false,true);
         }
     }
 
@@ -187,7 +189,7 @@ public class SimplePlayer implements
 
     //when use click close from notification releasePlayer && cancel notification
     private void releasePlayer() {
-        sendPlayStatusBroadcast(false, false);
+        sendPlayStatusBroadcast(false, false,false,false);
         if (player != null) {
             playerPosition = player.getCurrentPosition();
             player.release();
@@ -197,15 +199,15 @@ public class SimplePlayer implements
         }
     }
 
-    private void sendPlayStatusBroadcast(boolean isPlaying, boolean toPlayNext) {
+    public void sendPlayStatusBroadcast(boolean isPlaying, boolean toSwitch, boolean isNext, boolean startPlay) {
         Intent intent = new Intent();
         intent.setAction(ACTION_PLAY_STUTUS);
         intent.putExtra(KEY_STATUS, isPlaying);
-        intent.putExtra(KEY_SWITCH, toPlayNext);
-        intent.putExtra(KEY_ADDRESS, contentUri);
+        intent.putExtra(KEY_SWITCH, toSwitch);
+        intent.putExtra(KEY_IS_NEXT, isNext);
+        intent.putExtra(KEY_START_PLAY, startPlay);
         LocalBroadcastManager.getInstance(appContext).sendBroadcast(intent);
     }
-
 
     @Override
     public void onStateChanged(boolean playWhenReady, int playbackState) {
@@ -213,11 +215,11 @@ public class SimplePlayer implements
         switch (playbackState) {
             case ExoPlayer.STATE_BUFFERING:
                 text += "buffering";
-                sendPlayStatusBroadcast(true, false);
+                sendPlayStatusBroadcast(true, false,false,false);
                 break;
             case ExoPlayer.STATE_ENDED:
                 text += "ended";
-                sendPlayStatusBroadcast(false, true);
+                sendPlayStatusBroadcast(false, true,true,false);
                 break;
             case ExoPlayer.STATE_IDLE:
                 text += "idle";

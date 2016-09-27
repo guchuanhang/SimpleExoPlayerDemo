@@ -40,6 +40,7 @@ import android.widget.Toast;
 
 import com.google.android.exoplayer.demo.R;
 import com.google.android.exoplayer.demo.Samples;
+import com.google.android.exoplayer.demo.player.ExoApplication;
 import com.google.android.exoplayer.demo.player.SimplePlayer;
 import com.google.android.exoplayer.util.Util;
 
@@ -86,7 +87,7 @@ public class PlayService extends Service {
         intent.putExtra(PlayService.KEY_POS, position);
         if (isNativeAudio || com.hang.exoplayer.bean.Util.canPlay()) {
             packageContext.startService(intent);
-        } else {
+        } else if (com.hang.exoplayer.bean.Util.getNetType() > -1) {
             Bundle bundle = intent.getExtras();
             if (packageContext instanceof FragmentActivity) {
                 NetInfoFragment netInfoFragment = NetInfoFragment.newInstance(bundle);
@@ -95,6 +96,8 @@ public class PlayService extends Service {
             } else {
                 throw new RuntimeException("loadMedia Activity must be FragmentActivity");
             }
+        } else {
+            Toast.makeText(ExoApplication.getApplication(), "请检查网络设置，稍后重试~", Toast.LENGTH_LONG).show();
         }
 
     }
@@ -140,28 +143,6 @@ public class PlayService extends Service {
         return result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
     }
 
-    void showNotification() {
-        rm = new RemoteViews(getApplicationContext().getPackageName(), R.layout.notif_media_player);
-        Intent pauseIntent = new Intent(getApplicationContext(), PlayService.class);
-        pauseIntent.putExtra(ACTION_PLAY, KEY_PLAY_PAUSE);
-        PendingIntent pause = PendingIntent.getService(getApplicationContext(), PAUSE, pauseIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        rm.setOnClickPendingIntent(R.id.btn_play, pause);
-        if (SimplePlayer.getInstance().isPlaying()) {
-            rm.setImageViewResource(R.id.btn_play, R.mipmap.ic_launcher);
-        } else {
-            rm.setImageViewResource(R.id.btn_play, android.R.drawable.alert_dark_frame);
-        }
-        Notification notif = new NotificationCompat.Builder(getApplicationContext())
-                .setOngoing(true)
-                .setSmallIcon(R.mipmap.ic_launcher)
-                .setContent(rm)
-                .build();
-
-        NotificationManager mgr = (NotificationManager) getApplicationContext()
-                .getSystemService(Context.NOTIFICATION_SERVICE);
-        mgr.notify(NOTIFICATION_ID, notif);
-    }
-
     private void pause() {
         Message message = playHandler.obtainMessage();
         message.what = 2;
@@ -171,7 +152,6 @@ public class PlayService extends Service {
     private void play() {
         Message message = playHandler.obtainMessage();
         message.what = 1;
-//        Samples.Sample sample = new Samples.Sample("", playAddresses.get(mCurrentPosition), Util.TYPE_OTHER);
         Samples.Sample sample = new Samples.Sample("", playAddresses.get(mCurrentPosition), Util.TYPE_HLS);
 
         message.obj = sample;
@@ -179,9 +159,31 @@ public class PlayService extends Service {
         requestFocus();
     }
 
+    public boolean hasNext() {
+        if (mCurrentPosition < playAddresses.size()) {
+            return true;
+        }
+        return false;
+    }
+
+    public boolean hasPrevious() {
+        return mCurrentPosition > 0;
+    }
+
+    public void next() {
+        if (mCurrentPosition < playAddresses.size() - 1) {
+            SimplePlayer.getInstance().sendPlayStatusBroadcast(false, true, true, false);
+        }
+    }
+
+    public void previous() {
+        if (mCurrentPosition > 0) {
+            SimplePlayer.getInstance().sendPlayStatusBroadcast(false, true, false, false);
+        }
+    }
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        //TODO diff live program and audio;
         if (intent != null) {
             int actionType = intent.getIntExtra(ACTION_PLAY, 0);
             switch (actionType) {
@@ -210,6 +212,7 @@ public class PlayService extends Service {
                 case KEY_RELEASE: {
                     pause();
                     stopSelf();
+                    dismissNotification();
                     break;
                 }
                 case KEY_PREVIOUS: {
@@ -266,26 +269,31 @@ public class PlayService extends Service {
         }
     }
 
+    public static final int ID_NOTIFICATION = 123;
+
     class PlayStatusReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            showNotification();
             if (intent != null) {
                 if (intent.getBooleanExtra(SimplePlayer.KEY_SWITCH, false)) {
-                    if (mCurrentPosition < playAddresses.size() - 1) {
-                        String playString = playAddresses.get(++mCurrentPosition);
-                        Message message = playHandler.obtainMessage();
-                        message.what = 1;
-                        //TODO maybe live program
-                        Samples.Sample sample = new Samples.Sample("", playString, Util.TYPE_OTHER);
-                        message.obj = sample;
-                        message.sendToTarget();
+                    if (intent.getBooleanExtra(SimplePlayer.KEY_IS_NEXT, true)) {
+                        if (mCurrentPosition < playAddresses.size() - 1) {
+                            ++mCurrentPosition;
+                            play();
+                        }
+                    } else {
+                        if (mCurrentPosition > 0) {
+                            --mCurrentPosition;
+                            play();
+                        }
                     }
+                }
+                if (intent.getBooleanExtra(SimplePlayer.KEY_START_PLAY, false)) {
+                    showNotification();
                 }
             }
         }
     }
-
 
     @Override
     public void onDestroy() {
@@ -293,4 +301,58 @@ public class PlayService extends Service {
         super.onDestroy();
     }
 
+    private void dismissNotification() {
+        NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        manager.cancel(ID_NOTIFICATION);
+    }
+
+    public void showNotification() {
+        String title = "XXXXXXXX";
+        String description = "YYYYYYYYYYYYY";
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(
+                PlayService.this)
+                .setAutoCancel(false).setOngoing(true);
+        Class<?> targetClass = WelcomeActivity.class;
+        Intent notificationIntent = new Intent(PlayService.this, targetClass);
+        notificationIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent pendingIntent = PendingIntent.getActivity(PlayService.this, 0,
+                notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        builder.setContentIntent(pendingIntent);
+        Intent playPauseIntent = new Intent(ExoApplication.getApplication(), PlayService.class);
+        playPauseIntent.putExtra(ACTION_PLAY, KEY_PLAY_PAUSE);
+        Intent previousIntent = new Intent(ExoApplication.getApplication(), PlayService.class);
+        previousIntent.putExtra(ACTION_PLAY, KEY_PREVIOUS);
+        Intent nextIntent = new Intent(ExoApplication.getApplication(), PlayService.class);
+        nextIntent.putExtra(ACTION_PLAY, KEY_NEXT);
+
+        Intent dismissIntent = new Intent(ExoApplication.getApplication(), PlayService.class);
+        dismissIntent.putExtra(ACTION_PLAY, KEY_RELEASE);
+
+        PendingIntent playPendingIntent = PendingIntent.getService(PlayService.this, 0,
+                playPauseIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        PendingIntent previousPendingIntent = PendingIntent.getService(PlayService.this, 0,
+                previousIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent nextPendingIntent = PendingIntent.getService(PlayService.this, 0,
+                nextIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent dismissPendingIntent = PendingIntent.getService(PlayService.this, 0,
+                dismissIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        RemoteViews contentView = new RemoteViews(getPackageName(),
+                R.layout.notification_high_version_no_live);
+        contentView.setTextViewText(R.id.songName, title);
+        contentView.setTextViewText(R.id.artist, description);
+        contentView.setImageViewResource(R.id.play_pause,
+                SimplePlayer.getInstance().isPlaying() ? R.drawable.notification_play_normal
+                        : R.drawable.notification_pause_normal);
+        contentView.setOnClickPendingIntent(R.id.play_pause, playPendingIntent);
+        contentView.setOnClickPendingIntent(R.id.play_pre, previousPendingIntent);
+        contentView.setOnClickPendingIntent(R.id.forward, nextPendingIntent);
+        contentView.setOnClickPendingIntent(R.id.stop, dismissPendingIntent);
+        Notification notification = builder.setContent(contentView).setSmallIcon(R.mipmap.ic_launcher).build();
+        startForeground(ID_NOTIFICATION, notification);
+        NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        manager.notify(ID_NOTIFICATION, notification);
+    }
 }

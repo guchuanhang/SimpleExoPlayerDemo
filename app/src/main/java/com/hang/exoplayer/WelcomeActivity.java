@@ -88,7 +88,6 @@ public class WelcomeActivity extends FragmentActivity implements View.OnClickLis
 
     SeekBar seekBar;
     PlayStatusReceiver playStatusReceiver;
-    TextView playingUrlView;
     ImageView playStatusView;
 
     @Override
@@ -101,7 +100,6 @@ public class WelcomeActivity extends FragmentActivity implements View.OnClickLis
         seekBar = (SeekBar) findViewById(R.id.seekbar);
         seekBar.setOnSeekBarChangeListener(this);
         playStatusView = (ImageView) findViewById(R.id.iv_status);
-        playingUrlView = (TextView) findViewById(R.id.tv_address);
         playStatusReceiver = new PlayStatusReceiver();
 
     }
@@ -113,13 +111,9 @@ public class WelcomeActivity extends FragmentActivity implements View.OnClickLis
             if (intent != null) {
                 if (intent.getBooleanExtra(SimplePlayer.KEY_STATUS, false)) {
                     playStatusView.setVisibility(View.VISIBLE);
-                    Uri playUri = intent.getParcelableExtra(SimplePlayer.KEY_ADDRESS);
-                    String playingAddress = playUri.toString();
-                    playingUrlView.setText(playingAddress);
 
                 } else {
                     playStatusView.setVisibility(View.INVISIBLE);
-                    playingUrlView.setText("");
                 }
             }
         }

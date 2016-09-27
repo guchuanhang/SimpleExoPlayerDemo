@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@android:color/black"
+    android:descendantFocusability="blocksDescendants"
+
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    tools:targetApi="jelly_bean">
+
+    <ImageView
+        android:id="@+id/cover"
+        android:layout_width="@dimen/height_notification"
+        android:layout_height="@dimen/height_notification"
+        android:contentDescription="@null"
+        android:scaleType="fitXY"
+        android:src="@mipmap/ic_launcher" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="5"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/songName"
+                style="@android:style/TextAppearance.StatusBar.EventContent.Title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:paddingLeft="4dp"
+                android:paddingRight="24dp"
+                android:paddingTop="1dp"
+                android:singleLine="true"
+                android:textColor="@android:color/white" />
+
+            <TextView
+                android:id="@+id/artist"
+                style="@android:style/TextAppearance.StatusBar.EventContent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/songName"
+                android:ellipsize="end"
+                android:paddingLeft="4dp"
+                android:paddingRight="24dp"
+                android:singleLine="true"
+                android:textColor="@android:color/white" />
+
+            <ImageButton
+                android:id="@+id/stop"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentRight="true"
+                android:background="#00ffffff"
+                android:clickable="true"
+                android:contentDescription="@null"
+                android:padding="8dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/notification_exit_normal" />
+        </RelativeLayout>
+
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@android:color/darker_gray"
+            android:contentDescription="@null"
+            android:scaleType="fitXY"></ImageView>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="3"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/play_pre"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="#00ffffff"
+                android:clickable="true"
+                android:contentDescription="@null"
+                android:scaleType="fitCenter"
+                android:src="@drawable/notification_pre_normal" />
+
+            <ImageButton
+                android:id="@+id/play_pause"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="#00ffffff"
+                android:clickable="true"
+                android:contentDescription="@null"
+                android:scaleType="fitCenter"
+                android:src="@drawable/notification_pause_normal" />
+
+            <ImageButton
+                android:id="@+id/forward"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="#00ffffff"
+                android:clickable="true"
+                android:contentDescription="@null"
+                android:scaleType="fitCenter"
+                android:src="@drawable/notification_next_normal" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>
