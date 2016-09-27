@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer.demo.player;
+package com.hang.exoplayer;
 
 import android.Manifest.permission;
 import android.annotation.TargetApi;
@@ -38,7 +38,12 @@ import com.google.android.exoplayer.demo.EventLogger;
 import com.google.android.exoplayer.demo.R;
 import com.google.android.exoplayer.demo.SmoothStreamingTestMediaDrmCallback;
 import com.google.android.exoplayer.demo.WidevineTestMediaDrmCallback;
+import com.google.android.exoplayer.demo.player.DashRendererBuilder;
+import com.google.android.exoplayer.demo.player.DemoPlayer;
 import com.google.android.exoplayer.demo.player.DemoPlayer.RendererBuilder;
+import com.google.android.exoplayer.demo.player.ExtractorRendererBuilder;
+import com.google.android.exoplayer.demo.player.HlsRendererBuilder;
+import com.google.android.exoplayer.demo.player.SmoothStreamingRendererBuilder;
 import com.google.android.exoplayer.drm.UnsupportedDrmException;
 import com.google.android.exoplayer.metadata.id3.ApicFrame;
 import com.google.android.exoplayer.metadata.id3.GeobFrame;
@@ -58,7 +63,7 @@ import java.util.TimerTask;
 /**
  * An activity that plays media using {@link DemoPlayer}.
  */
-public class MainActivity extends Activity implements
+public class SimpleActivity extends Activity implements
         DemoPlayer.Listener, DemoPlayer.Id3MetadataListener,
         View.OnClickListener, SeekBar.OnSeekBarChangeListener {
     // For use within demo app code.
@@ -352,7 +357,7 @@ public class MainActivity extends Activity implements
                 text += "unknown";
                 break;
         }
-        Toast.makeText(MainActivity.this, text, Toast.LENGTH_LONG).show();
+        Toast.makeText(SimpleActivity.this, text, Toast.LENGTH_LONG).show();
     }
 
     @Override

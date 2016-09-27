@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer.demo.player;
+package com.hang.exoplayer;
 
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -24,12 +24,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioManager;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.support.annotation.Nullable;
+import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
@@ -38,22 +40,18 @@ import android.widget.Toast;
 
 import com.google.android.exoplayer.demo.R;
 import com.google.android.exoplayer.demo.Samples;
+import com.google.android.exoplayer.demo.player.SimplePlayer;
 import com.google.android.exoplayer.util.Util;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * An activity for selecting from a number of samples.
  */
 public class PlayService extends Service {
-    @Nullable
-    @Override
-    public IBinder onBind(Intent intent) {
-        return null;
-    }
-
     public static final String KEY_LIST = "play list";
-    public static final String KEY_POS = "play postion";
+    public static final String KEY_POS = "play position";
     public static final String ACTION_PLAY = "action type";
     public static final int KEY_PLAY_PAUSE = 0;
     public static final int KEY_LOAD = 1;
@@ -72,6 +70,34 @@ public class PlayService extends Service {
     public static final String REQUEST_CODE = "1111";
     public static final int PAUSE = 2;
     public static final int NOTIFICATION_ID = 123;
+
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
+
+    public static void loadMedia(Context packageContext, List<String> playingAddress, int position) {
+        boolean isNativeAudio = (playingAddress != null && playingAddress.size() > 0) ? playingAddress.get(0).startsWith("file:") : false;
+        Intent intent = new Intent(packageContext, PlayService.class);
+        intent.putExtra(PlayService.ACTION_PLAY, PlayService.KEY_LOAD);
+        ArrayList<String> playingAddresses = new ArrayList<>(playingAddress);
+        intent.putExtra(PlayService.KEY_LIST, playingAddresses);
+        intent.putExtra(PlayService.KEY_POS, position);
+        if (isNativeAudio || com.hang.exoplayer.bean.Util.canPlay()) {
+            packageContext.startService(intent);
+        } else {
+            Bundle bundle = intent.getExtras();
+            if (packageContext instanceof FragmentActivity) {
+                NetInfoFragment netInfoFragment = NetInfoFragment.newInstance(bundle);
+                netInfoFragment.show(((FragmentActivity) packageContext).getSupportFragmentManager(),
+                        "netInfo");
+            } else {
+                throw new RuntimeException("loadMedia Activity must be FragmentActivity");
+            }
+        }
+
+    }
 
     @Override
     public void onCreate() {
@@ -145,7 +171,9 @@ public class PlayService extends Service {
     private void play() {
         Message message = playHandler.obtainMessage();
         message.what = 1;
-        Samples.Sample sample = new Samples.Sample("", playAddresses.get(mCurrentPosition), Util.TYPE_OTHER);
+//        Samples.Sample sample = new Samples.Sample("", playAddresses.get(mCurrentPosition), Util.TYPE_OTHER);
+        Samples.Sample sample = new Samples.Sample("", playAddresses.get(mCurrentPosition), Util.TYPE_HLS);
+
         message.obj = sample;
         message.sendToTarget();
         requestFocus();
@@ -264,4 +292,5 @@ public class PlayService extends Service {
         LocalBroadcastManager.getInstance(this).unregisterReceiver(playStatusReceiver);
         super.onDestroy();
     }
+
 }

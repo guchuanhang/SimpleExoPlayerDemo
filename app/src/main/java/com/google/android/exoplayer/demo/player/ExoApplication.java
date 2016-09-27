@@ -2,6 +2,8 @@ package com.google.android.exoplayer.demo.player;
 
 import android.app.Application;
 
+import com.hang.exoplayer.bean.Util;
+
 /**
  * Created by Chuanhang.Gu on 2016/9/18.
  */
@@ -12,6 +14,7 @@ public class ExoApplication extends Application {
     public void onCreate() {
         super.onCreate();
         this.exoApplication = this;
+        Util.forbidNext4GPlay();
     }
 
     public static ExoApplication getApplication() {

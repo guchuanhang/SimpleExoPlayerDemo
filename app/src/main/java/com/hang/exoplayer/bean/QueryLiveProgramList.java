@@ -1,8 +1,8 @@
 //: reusing/CADSystem.java
 // Ensuring proper cleanup.
-package com.google.android.exoplayer.demo.com.google.android.exoplayer.bean;
+package com.hang.exoplayer.bean;
 
-import com.google.android.exoplayer.demo.player.WelcomeActivity;
+import com.hang.exoplayer.WelcomeActivity;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;

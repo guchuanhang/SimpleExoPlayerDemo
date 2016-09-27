@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer.demo.player;
+package com.hang.exoplayer;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
@@ -23,22 +23,20 @@ import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.LocalBroadcastManager;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.google.android.exoplayer.demo.R;
-import com.google.android.exoplayer.demo.Samples;
-import com.google.android.exoplayer.util.Util;
+import com.google.android.exoplayer.demo.player.SimplePlayer;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -46,9 +44,14 @@ import java.util.TimerTask;
 /**
  * An activity for selecting from a number of samples.
  */
-public class WelcomeActivity extends Activity implements View.OnClickListener,
+public class WelcomeActivity extends FragmentActivity implements View.OnClickListener,
         SeekBar.OnSeekBarChangeListener {
     public static final String TAG = "Welcome";
+    //not play
+    public static String muzhiReview = "http://ts1.ijntv.cn/jnxwpl/sd/1474653600000,1800000.m3u8?_upt=1035157f1474862986";
+    public static String muzhiLive = "http://living.muzhifm.com/muzhifm/jnxw1066.m3u8?auth_key=1480301650-0-0-f92ad1bc8b31d09ff37249205d7dbd59";
+    public static final String URL_AUDIO = "http://vfile.dingdongfm.com/2015/1450/2617/4979/145026174979.ssm/145026174979.m3u8";
+    //        public static final String URL_AUDIO = "http://vfile.dingdongfm.com/2016/1473/4999/6792/147349996792.ssm/147349996792.m3u8";
     String playAddress0 = "file://" + Environment.getExternalStorageDirectory() + File.separator + "test.aac";
     String playAddress = "file://" + Environment.getExternalStorageDirectory() + File.separator + "test.mp3";
     Queue<String> playAddresses = new LinkedList<>(Arrays.asList(new String[]{playAddress}));
@@ -61,13 +64,16 @@ public class WelcomeActivity extends Activity implements View.OnClickListener,
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
+            case R.id.ibtn_setting: {
+                startActivity(new Intent(WelcomeActivity.this, SettingActivity.class));
+                break;
+            }
             case R.id.btn_resume: {
-                Intent intent = new Intent(WelcomeActivity.this, PlayService.class);
-                intent.putExtra(PlayService.ACTION_PLAY, PlayService.KEY_LOAD);
-                ArrayList<String> playingAddresses = new ArrayList<>(Arrays.asList(playAddress0, playAddress));
-                intent.putExtra(PlayService.KEY_LIST, playingAddresses);
-                intent.putExtra(PlayService.KEY_POS, 0);
-                startService(intent);
+//                String muzhiLive=
+//                        "http://living.muzhifm.com/muzhifm/jnxw1066.m3u8?auth_key=1480301650-0-0-f92ad1bc8b31d09ff37249205d7dbd59";
+                String nativeM3U8 = "file://" + Environment.getExternalStorageDirectory() + File.separator + "test.m3u8";
+                List<String> playingAddressList = Arrays.asList(new String[]{muzhiLive});
+                PlayService.loadMedia(this, playingAddressList, 0);
                 break;
             }
             case R.id.btn_pause: {
@@ -83,43 +89,22 @@ public class WelcomeActivity extends Activity implements View.OnClickListener,
     SeekBar seekBar;
     PlayStatusReceiver playStatusReceiver;
     TextView playingUrlView;
+    ImageView playStatusView;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        LinearLayout outLayout = new LinearLayout(this);
-        outLayout.setOrientation(LinearLayout.VERTICAL);
-        setContentView(outLayout);
-        Button resumeButton = new Button(this);
-        resumeButton.setText("Resume");
-        resumeButton.setId(R.id.btn_resume);
-        outLayout.addView(resumeButton);
-        resumeButton.setOnClickListener(this);
-        Button pauseButton = new Button(this);
-        pauseButton.setText("Pause");
-        outLayout.addView(pauseButton);
-        pauseButton.setId(R.id.btn_pause);
-        pauseButton.setOnClickListener(this);
-
-        seekBar = new SeekBar(this);
-        outLayout.addView(seekBar);
+        setContentView(R.layout.activity_welcome);
+        findViewById(R.id.ibtn_setting).setOnClickListener(this);
+        findViewById(R.id.btn_resume).setOnClickListener(this);
+        findViewById(R.id.btn_pause).setOnClickListener(this);
+        seekBar = (SeekBar) findViewById(R.id.seekbar);
         seekBar.setOnSeekBarChangeListener(this);
-
-        playStatusView = new ImageView(this);
-        playStatusView.setImageResource(R.mipmap.ic_launcher);
-        outLayout.addView(playStatusView);
-        playingUrlView = new TextView(this);
-        outLayout.addView(playingUrlView);
-
+        playStatusView = (ImageView) findViewById(R.id.iv_status);
+        playingUrlView = (TextView) findViewById(R.id.tv_address);
         playStatusReceiver = new PlayStatusReceiver();
-//        //TODO
-//        SimplePlayer simplePlayer = SimplePlayer.getInstance();
-//        Samples.Sample sample = new Samples.Sample("", "file:///storage/emulated/0/test.aac", Util.TYPE_OTHER);
-//        simplePlayer.play(sample);
 
     }
-
-    ImageView playStatusView;
 
 
     class PlayStatusReceiver extends BroadcastReceiver {

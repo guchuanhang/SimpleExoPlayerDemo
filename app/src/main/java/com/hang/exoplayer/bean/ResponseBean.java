@@ -1,4 +1,4 @@
-package com.google.android.exoplayer.demo.com.google.android.exoplayer.bean;
+package com.hang.exoplayer.bean;
 
 import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;

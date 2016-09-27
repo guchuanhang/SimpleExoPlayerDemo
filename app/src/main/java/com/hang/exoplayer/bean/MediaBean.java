@@ -1,4 +1,4 @@
-package com.google.android.exoplayer.demo.com.google.android.exoplayer.bean;
+package com.hang.exoplayer.bean;
 
 import android.os.Parcel;
 import android.os.Parcelable;
