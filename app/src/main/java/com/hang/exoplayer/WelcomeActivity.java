@@ -78,7 +78,7 @@ public class WelcomeActivity extends FragmentActivity implements View.OnClickLis
             }
             case R.id.btn_pause: {
                 Intent intent = new Intent(WelcomeActivity.this, PlayService.class);
-                intent.putExtra(PlayService.ACTION_PLAY, PlayService.KEY_PLAY_PAUSE);
+                intent.putExtra(PlayService.ACTION_PLAY_PAUSE, true);
                 startService(intent);
                 break;
             }

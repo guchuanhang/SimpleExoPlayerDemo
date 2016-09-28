@@ -19,6 +19,7 @@ import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
@@ -28,6 +29,8 @@ import android.widget.RemoteViews;
 
 import com.google.android.exoplayer.demo.R;
 import com.google.android.exoplayer.demo.player.DemoPlayer;
+import com.google.android.exoplayer.demo.player.ExoApplication;
+import com.google.android.exoplayer.demo.player.SimplePlayer;
 
 /**
  * An activity that plays media using {@link DemoPlayer}.
@@ -36,73 +39,70 @@ public class TestActivity extends Activity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        showNotification();
 //        simpleNotification();
+//        showNotification();
     }
 
-    public void simpleNotification() {
-        // 1.展示的内容
-        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(
-                this)
-                .setContentTitle("title title title ")
-                .setContentText("text text text")
-                .setSmallIcon(R.mipmap.ic_launcher)
-                .setLargeIcon(
-                        BitmapFactory.decodeResource(getResources(),
-                                R.mipmap.ic_launcher));
-        // 2.点击通知栏的跳转
-        Intent intent = new Intent(TestActivity.this, WelcomeActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0,
-                intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        notificationBuilder.setContentIntent(pendingIntent);
-        // 3.发出通知
-        Notification notification = null;
-        notification = notificationBuilder.build();
+//    public void simpleNotification() {
+//        RemoteViews remoteViews = new RemoteViews(this.getPackageName(), R.layout.notification_simple);
+//
+//        Intent pauseIntent = new Intent(getApplicationContext(), PlayService.class);
+//        pauseIntent.putExtra(PlayService.ACTION_PLAY_PAUSE, true);
+//        PendingIntent pendingIntent = PendingIntent.getService(getApplicationContext(), 2, pauseIntent, 0);
+//        remoteViews.setOnClickPendingIntent(R.id.play_pause, pendingIntent);
+//
+//        Intent exitIntent = new Intent(getApplicationContext(), PlayService.class);
+//        exitIntent.putExtra(PlayService.ACTION_EXIT, true);
+//        PendingIntent exitPendingIntent = PendingIntent.getService(getApplicationContext(), 2, exitIntent, 0);
+//        remoteViews.setOnClickPendingIntent(R.id.stop, exitPendingIntent);
+//
+//
+//        Notification noti = new Notification.Builder(this)
+//                .setSmallIcon(R.mipmap.ic_launcher)
+//                .setContent(remoteViews)
+//                .setAutoCancel(true)
+//                .build();
+//
+//        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+//        notificationManager.notify(0, noti);
+//    }
 
-        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-
-        notificationManager.notify(0, notification);
-    }
-
-    public void showNotification() {
-        String title = "XXXXXXXX";
-        String description = "YYYYYYYYYYYYY";
-        Notification notification = null;
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(
-                TestActivity.this)
-                .setAutoCancel(false).setOngoing(true);
-        Intent notificationIntent = new Intent(TestActivity.this, WelcomeActivity.class);
-        notificationIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
-                | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        PendingIntent pendingIntent = PendingIntent.getActivity(TestActivity.this, 0,
-                notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        builder.setContentIntent(pendingIntent);
+//    public void showNotification() {
+//        String title = "XXXXXXXX";
+//        String description = "YYYYYYYYYYYYY";
+//        Notification notification = null;
+//        NotificationCompat.Builder builder = new NotificationCompat.Builder(
+//                TestActivity.this)
+//                .setAutoCancel(false).setOngoing(true);
+//        Intent notificationIntent = new Intent(TestActivity.this, PlayService.class);
+//        notificationIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+//                | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+//        PendingIntent pendingIntent = PendingIntent.getActivity(TestActivity.this, 0,
+//                notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+//        builder.setContentIntent(pendingIntent);
 //        Intent playPauseIntent = new Intent(ExoApplication.getApplication(), PlayService.class);
-//        playPauseIntent.putExtra(PlayService.ACTION_PLAY, PlayService.KEY_PLAY_PAUSE);
+//        playPauseIntent.putExtra(PlayService.ACTION_PLAY_PAUSE, true
+//        );
 //        Intent previousIntent = new Intent(ExoApplication.getApplication(), PlayService.class);
 //        previousIntent.putExtra(PlayService.ACTION_PLAY, PlayService.KEY_PREVIOUS);
 //        Intent nextIntent = new Intent(ExoApplication.getApplication(), PlayService.class);
 //        nextIntent.putExtra(PlayService.ACTION_PLAY, PlayService.KEY_NEXT);
 //
 //        Intent dismissIntent = new Intent(ExoApplication.getApplication(), PlayService.class);
-//        dismissIntent.putExtra(PlayService.ACTION_PLAY, PlayService.KEY_RELEASE);
+//        dismissIntent.putExtra(PlayService.ACTION_EXIT, true);
 //
-//        PendingIntent playPendingIntent = PendingIntent.getService(SimpleActivity.this, 0,
+//        PendingIntent playPendingIntent = PendingIntent.getService(TestActivity.this, 0,
 //                playPauseIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 //
-//        PendingIntent previousPendingIntent = PendingIntent.getService(SimpleActivity.this, 0,
+//        PendingIntent previousPendingIntent = PendingIntent.getService(TestActivity.this, 1,
 //                previousIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-//        PendingIntent nextPendingIntent = PendingIntent.getService(SimpleActivity.this, 0,
+//        PendingIntent nextPendingIntent = PendingIntent.getService(TestActivity.this,2,
 //                nextIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-//        PendingIntent dismissPendingIntent = PendingIntent.getService(SimpleActivity.this, 0,
+//        PendingIntent dismissPendingIntent = PendingIntent.getService(TestActivity.this, 3,
 //                dismissIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-
-        RemoteViews contentView = null;
-//            RemoteViews bigContentView = null;
-        contentView = new RemoteViews(getPackageName(),
-                R.layout.notification_low_version_no_live);
-        RemoteViews bigViews = new RemoteViews(getPackageName(),
-                R.layout.notification_high_version_no_live);
+//
+//        RemoteViews contentView = new RemoteViews(getPackageName(),
+//                R.layout.notification_high_version_no_live);
 //        contentView.setTextViewText(R.id.songName, title);
 //        contentView.setTextViewText(R.id.artist, description);
 //        contentView.setImageViewResource(R.id.play_pause,
@@ -112,11 +112,10 @@ public class TestActivity extends Activity {
 //        contentView.setOnClickPendingIntent(R.id.play_pre, previousPendingIntent);
 //        contentView.setOnClickPendingIntent(R.id.forward, nextPendingIntent);
 //        contentView.setOnClickPendingIntent(R.id.stop, dismissPendingIntent);
-//        builder.setCustomContentView(contentView);
-        builder.setContent(bigViews);
-        notification = builder.setSmallIcon(R.mipmap.ic_launcher).build();
-        NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        manager.notify(PlayService.ID_NOTIFICATION, notification);
-
-    }
+//        builder.setContent(contentView);
+//        notification = builder.setSmallIcon(R.mipmap.ic_launcher).build();
+//        NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+//        manager.notify(PlayService.ID_NOTIFICATION, notification);
+//
+//    }
 }

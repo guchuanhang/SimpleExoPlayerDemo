@@ -52,13 +52,12 @@ import java.util.List;
  */
 public class PlayService extends Service {
     public static final String KEY_LIST = "play list";
-    public static final String KEY_POS = "play position";
-    public static final String ACTION_PLAY = "action type";
-    public static final int KEY_PLAY_PAUSE = 0;
-    public static final int KEY_LOAD = 1;
-    public static final int KEY_RELEASE = 2;
-    public static final int KEY_PREVIOUS = 3;
-    public static final int KEY_NEXT = 4;
+    public static final String ACTION_PLAY_PAUSE = "action play pause";
+    public static final String ACTION_LOAD = "action load";
+    public static final String ACTION_EXIT = "action exit";
+    public static final String ACTION_PREVIOUS = "action previous";
+    public static final String ACTION_NEXT = "action next";
+    public static final String KEY_POS = "audio position";
     private AudioManager mAm;
 
     private ArrayList<String> playAddresses = new ArrayList<>();
@@ -81,7 +80,7 @@ public class PlayService extends Service {
     public static void loadMedia(Context packageContext, List<String> playingAddress, int position) {
         boolean isNativeAudio = (playingAddress != null && playingAddress.size() > 0) ? playingAddress.get(0).startsWith("file:") : false;
         Intent intent = new Intent(packageContext, PlayService.class);
-        intent.putExtra(PlayService.ACTION_PLAY, PlayService.KEY_LOAD);
+        intent.putExtra(PlayService.ACTION_LOAD, true);
         ArrayList<String> playingAddresses = new ArrayList<>(playingAddress);
         intent.putExtra(PlayService.KEY_LIST, playingAddresses);
         intent.putExtra(PlayService.KEY_POS, position);
@@ -144,12 +143,14 @@ public class PlayService extends Service {
     }
 
     private void pause() {
+        SimplePlayer.getInstance().sendPlayStatusBroadcast(false, false, false, false);
         Message message = playHandler.obtainMessage();
         message.what = 2;
         message.sendToTarget();
     }
 
     private void play() {
+        SimplePlayer.getInstance().sendPlayStatusBroadcast(true, false, false, false);
         Message message = playHandler.obtainMessage();
         message.what = 1;
         Samples.Sample sample = new Samples.Sample("", playAddresses.get(mCurrentPosition), Util.TYPE_HLS);
@@ -185,59 +186,52 @@ public class PlayService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null) {
-            int actionType = intent.getIntExtra(ACTION_PLAY, 0);
-            switch (actionType) {
-                case KEY_PLAY_PAUSE: {
-                    boolean isPlaying = SimplePlayer.getInstance().isPlaying();
-                    if (isPlaying) {
-                        pause();
-                    } else {
-                        play();
-                    }
-                    break;
-                }
-
-                case KEY_LOAD: {
-                    ArrayList<String> audioList = intent.getStringArrayListExtra(KEY_LIST);
-                    int currentPosition = intent.getIntExtra(KEY_POS, 0);
-                    if (playAddresses.containsAll(audioList) && mCurrentPosition == currentPosition) {
-                    } else {
-                        mCurrentPosition = currentPosition;
-                        playAddresses.clear();
-                        playAddresses.addAll(audioList);
-                    }
-                    play();
-                    break;
-                }
-                case KEY_RELEASE: {
+            boolean playOrPauseAction = intent.getBooleanExtra(ACTION_PLAY_PAUSE, false);
+            boolean loadAction = intent.getBooleanExtra(ACTION_LOAD, false);
+            boolean exitAction = intent.getBooleanExtra(ACTION_EXIT, false);
+            boolean previousAction = intent.getBooleanExtra(ACTION_PREVIOUS, false);
+            boolean nextAction = intent.getBooleanExtra(ACTION_NEXT, false);
+            if (playOrPauseAction) {
+                boolean isPlaying = SimplePlayer.getInstance().isPlaying();
+                if (isPlaying) {
                     pause();
-                    stopSelf();
-                    dismissNotification();
-                    break;
+                } else {
+                    play();
                 }
-                case KEY_PREVIOUS: {
-                    if (mCurrentPosition > 0) {
-                        --mCurrentPosition;
-                        play();
-                    } else {
-                        Toast.makeText(this, "已经是第一首啦~", Toast.LENGTH_SHORT).show();
-                    }
-
-                    break;
+            } else if (loadAction) {
+                ArrayList<String> audioList = intent.getStringArrayListExtra(KEY_LIST);
+                int currentPosition = intent.getIntExtra(KEY_POS, 0);
+                if (playAddresses.containsAll(audioList) && mCurrentPosition == currentPosition) {
+                } else {
+                    mCurrentPosition = currentPosition;
+                    playAddresses.clear();
+                    playAddresses.addAll(audioList);
                 }
-                case KEY_NEXT: {
-                    if (mCurrentPosition < playAddresses.size() - 1) {
-                        ++mCurrentPosition;
-                        play();
-                    } else {
-                        Toast.makeText(this, "已经是最后一首啦~", Toast.LENGTH_SHORT).show();
-                    }
-
-                    break;
+                play();
+            } else if (exitAction) {
+                pause();
+                SimplePlayer.getInstance().sendExitBroadcast();
+                if (playStatusReceiver != null) {
+                    LocalBroadcastManager.getInstance(this).unregisterReceiver(playStatusReceiver);
+                }
+                dismissNotification();
+                stopSelf();
+            } else if (previousAction) {
+                if (mCurrentPosition > 0) {
+                    --mCurrentPosition;
+                    play();
+                } else {
+                    Toast.makeText(this, "已经是第一首啦~", Toast.LENGTH_SHORT).show();
+                }
+            } else if (nextAction) {
+                if (mCurrentPosition < playAddresses.size() - 1) {
+                    ++mCurrentPosition;
+                    play();
+                } else {
+                    Toast.makeText(this, "已经是最后一首啦~", Toast.LENGTH_SHORT).show();
                 }
             }
         }
-
         return super.onStartCommand(intent, flags, startId);
 
     }
@@ -288,16 +282,18 @@ public class PlayService extends Service {
                         }
                     }
                 }
-                if (intent.getBooleanExtra(SimplePlayer.KEY_START_PLAY, false)) {
+                if (intent.getBooleanExtra(SimplePlayer.ACTION_SERVICE_EXISTS, false)) {
+                    dismissNotification();
+                } else {
                     showNotification();
                 }
             }
         }
+
     }
 
     @Override
     public void onDestroy() {
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(playStatusReceiver);
         super.onDestroy();
     }
 
@@ -314,43 +310,46 @@ public class PlayService extends Service {
                 .setAutoCancel(false).setOngoing(true);
         Class<?> targetClass = WelcomeActivity.class;
         Intent notificationIntent = new Intent(PlayService.this, targetClass);
-        notificationIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
-                | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+//        notificationIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+//                | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(PlayService.this, 0,
                 notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         builder.setContentIntent(pendingIntent);
         Intent playPauseIntent = new Intent(ExoApplication.getApplication(), PlayService.class);
-        playPauseIntent.putExtra(ACTION_PLAY, KEY_PLAY_PAUSE);
+        playPauseIntent.putExtra(ACTION_PLAY_PAUSE, true);
         Intent previousIntent = new Intent(ExoApplication.getApplication(), PlayService.class);
-        previousIntent.putExtra(ACTION_PLAY, KEY_PREVIOUS);
+        previousIntent.putExtra(ACTION_PREVIOUS, true);
         Intent nextIntent = new Intent(ExoApplication.getApplication(), PlayService.class);
-        nextIntent.putExtra(ACTION_PLAY, KEY_NEXT);
+        nextIntent.putExtra(ACTION_NEXT, true);
 
         Intent dismissIntent = new Intent(ExoApplication.getApplication(), PlayService.class);
-        dismissIntent.putExtra(ACTION_PLAY, KEY_RELEASE);
+        dismissIntent.putExtra(ACTION_EXIT, true);
 
-        PendingIntent playPendingIntent = PendingIntent.getService(PlayService.this, 0,
+        PendingIntent playPendingIntent = PendingIntent.getService(PlayService.this, 1,
                 playPauseIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-        PendingIntent previousPendingIntent = PendingIntent.getService(PlayService.this, 0,
+        PendingIntent previousPendingIntent = PendingIntent.getService(PlayService.this, 2,
                 previousIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        PendingIntent nextPendingIntent = PendingIntent.getService(PlayService.this, 0,
+        PendingIntent nextPendingIntent = PendingIntent.getService(PlayService.this, 3,
                 nextIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        PendingIntent dismissPendingIntent = PendingIntent.getService(PlayService.this, 0,
+        PendingIntent dismissPendingIntent = PendingIntent.getService(PlayService.this, 4,
                 dismissIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
         RemoteViews contentView = new RemoteViews(getPackageName(),
                 R.layout.notification_high_version_no_live);
         contentView.setTextViewText(R.id.songName, title);
         contentView.setTextViewText(R.id.artist, description);
+        boolean isPlaying = SimplePlayer.getInstance().isPlaying();
+        Log.d(TAG, "Notification is Playing?" + isPlaying);
         contentView.setImageViewResource(R.id.play_pause,
-                SimplePlayer.getInstance().isPlaying() ? R.drawable.notification_play_normal
+                isPlaying ? R.drawable.notification_play_normal
                         : R.drawable.notification_pause_normal);
         contentView.setOnClickPendingIntent(R.id.play_pause, playPendingIntent);
         contentView.setOnClickPendingIntent(R.id.play_pre, previousPendingIntent);
         contentView.setOnClickPendingIntent(R.id.forward, nextPendingIntent);
         contentView.setOnClickPendingIntent(R.id.stop, dismissPendingIntent);
-        Notification notification = builder.setContent(contentView).setSmallIcon(R.mipmap.ic_launcher).build();
+        builder.setCustomContentView(contentView);
+        Notification notification = builder.setSmallIcon(R.mipmap.ic_launcher).build();
         startForeground(ID_NOTIFICATION, notification);
         NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         manager.notify(ID_NOTIFICATION, notification);

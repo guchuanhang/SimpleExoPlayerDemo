@@ -56,6 +56,7 @@ public class SimplePlayer implements
     public static final String KEY_SWITCH = "audio switch";
     public static final String KEY_IS_NEXT = "to next";
     public static final String KEY_START_PLAY = "start play";
+    public static final String ACTION_SERVICE_EXISTS = "exist play service";
 
     private SimplePlayer() {
         appContext = ExoApplication.getApplication();
@@ -94,7 +95,7 @@ public class SimplePlayer implements
             if (player == null) {
                 preparePlayer(true);
             }
-            sendPlayStatusBroadcast(true, false,false,true);
+            sendPlayStatusBroadcast(true, false, false, true);
         }
     }
 
@@ -189,7 +190,7 @@ public class SimplePlayer implements
 
     //when use click close from notification releasePlayer && cancel notification
     private void releasePlayer() {
-        sendPlayStatusBroadcast(false, false,false,false);
+        sendPlayStatusBroadcast(false, false, false, false);
         if (player != null) {
             playerPosition = player.getCurrentPosition();
             player.release();
@@ -209,17 +210,24 @@ public class SimplePlayer implements
         LocalBroadcastManager.getInstance(appContext).sendBroadcast(intent);
     }
 
+    public void sendExitBroadcast() {
+        Intent intent = new Intent();
+        intent.setAction(ACTION_PLAY_STUTUS);
+        intent.putExtra(ACTION_SERVICE_EXISTS, true);
+        LocalBroadcastManager.getInstance(appContext).sendBroadcast(intent);
+    }
+
     @Override
     public void onStateChanged(boolean playWhenReady, int playbackState) {
         String text = "playWhenReady=" + playWhenReady + ", playbackState=";
         switch (playbackState) {
             case ExoPlayer.STATE_BUFFERING:
                 text += "buffering";
-                sendPlayStatusBroadcast(true, false,false,false);
+                sendPlayStatusBroadcast(true, false, false, false);
                 break;
             case ExoPlayer.STATE_ENDED:
                 text += "ended";
-                sendPlayStatusBroadcast(false, true,true,false);
+                sendPlayStatusBroadcast(false, true, true, false);
                 break;
             case ExoPlayer.STATE_IDLE:
                 text += "idle";
