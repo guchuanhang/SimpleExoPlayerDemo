@@ -14,7 +14,7 @@ public class ExoApplication extends Application {
     public void onCreate() {
         super.onCreate();
         this.exoApplication = this;
-        Util.forbidNext4GPlay();
+        Util.resetInit();
     }
 
     public static ExoApplication getApplication() {

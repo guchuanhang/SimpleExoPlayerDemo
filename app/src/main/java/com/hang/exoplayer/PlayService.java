@@ -24,6 +24,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -66,6 +68,7 @@ public class PlayService extends Service {
 
     PlayHandler playHandler;
     PlayStatusReceiver playStatusReceiver;
+    NetworkStateReceiver networkStateReceiver;
     RemoteViews rm;
     public static final String REQUEST_CODE = "1111";
     public static final int PAUSE = 2;
@@ -106,6 +109,9 @@ public class PlayService extends Service {
         super.onCreate();
         mAm = (AudioManager) getSystemService(AUDIO_SERVICE);
         playStatusReceiver = new PlayStatusReceiver();
+        networkStateReceiver = new NetworkStateReceiver();
+        IntentFilter netFilter = new IntentFilter("android.net.conn.CONNECTIVITY_CHANGE");
+        registerReceiver(networkStateReceiver, netFilter);
         IntentFilter intentFilter = new IntentFilter(SimplePlayer.ACTION_PLAY_STUTUS);
         LocalBroadcastManager.getInstance(this).
                 registerReceiver(playStatusReceiver, intentFilter);
@@ -114,27 +120,49 @@ public class PlayService extends Service {
         playHandler = new PlayHandler(playThread.getLooper());
     }
 
-    AudioManager.OnAudioFocusChangeListener afChangeListener = new AudioManager.OnAudioFocusChangeListener() {
-        public void onAudioFocusChange(int focusChange) {
-            if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT) {
-                pause();
-                mAm.abandonAudioFocus(afChangeListener);
-                Log.d(TAG, "AUDIOFOCUS_LOSS_TRANSIENT");
-            } else if (focusChange == AudioManager.AUDIOFOCUS_GAIN) {
-                // Resume playback
-                Log.d(TAG, "AUDIOFOCUS_GAIN");
+    AudioManager.OnAudioFocusChangeListener mOnAudioFocusChangeListener = new AudioManager.OnAudioFocusChangeListener() {
 
-            } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
-                mAm.abandonAudioFocus(afChangeListener);
-                // Stop playback
-                Log.d(TAG, "AUDIOFOCUS_LOSS");
+        @Override
+        public void onAudioFocusChange(int focusChange) {
+            switch (focusChange) {
+                case AudioManager.AUDIOFOCUS_GAIN:
+                    if (com.hang.exoplayer.bean.Util.clearStopPlayByLossFocusLastTime()) {
+                        play();
+                    }
+                    break;
+                case AudioManager.AUDIOFOCUS_GAIN_TRANSIENT:
+                    if (com.hang.exoplayer.bean.Util.clearStopPlayByLossFocusLastTime()) {
+                        play();
+                    }
+                    break;
+                case AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK:
+                    if (com.hang.exoplayer.bean.Util.clearStopPlayByLossFocusLastTime()) {
+                        play();
+                    }
+                    break;
+                case AudioManager.AUDIOFOCUS_LOSS:
+                    if (SimplePlayer.getInstance().isPlaying()) {
+                        pause();
+                        com.hang.exoplayer.bean.Util.saveStopPlayByLossFocus();
+                    }
+                    break;
+                case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT:
+                    if (SimplePlayer.getInstance().isPlaying()) {
+                        pause();
+                        com.hang.exoplayer.bean.Util.saveStopPlayByLossFocus();
+                    }
+                    break;
+                case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
+                    Log.e(TAG, "AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK");
+                    // Lower the volume
+                    break;
             }
         }
     };
 
     private boolean requestFocus() {
         // Request audio focus for playback
-        int result = mAm.requestAudioFocus(afChangeListener,
+        int result = mAm.requestAudioFocus(mOnAudioFocusChangeListener,
                 // Use the music stream.
                 AudioManager.STREAM_MUSIC,
                 // Request permanent focus.
@@ -143,14 +171,12 @@ public class PlayService extends Service {
     }
 
     private void pause() {
-        SimplePlayer.getInstance().sendPlayStatusBroadcast(false, false, false, false);
         Message message = playHandler.obtainMessage();
         message.what = 2;
         message.sendToTarget();
     }
 
     private void play() {
-        SimplePlayer.getInstance().sendPlayStatusBroadcast(true, false, false, false);
         Message message = playHandler.obtainMessage();
         message.what = 1;
         Samples.Sample sample = new Samples.Sample("", playAddresses.get(mCurrentPosition), Util.TYPE_HLS);
@@ -214,7 +240,6 @@ public class PlayService extends Service {
                 if (playStatusReceiver != null) {
                     LocalBroadcastManager.getInstance(this).unregisterReceiver(playStatusReceiver);
                 }
-                dismissNotification();
                 stopSelf();
             } else if (previousAction) {
                 if (mCurrentPosition > 0) {
@@ -295,6 +320,12 @@ public class PlayService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        if (networkStateReceiver != null) {
+            unregisterReceiver(networkStateReceiver);
+        }
+        if (playStatusReceiver != null) {
+            unregisterReceiver(playStatusReceiver);
+        }
     }
 
     private void dismissNotification() {
@@ -310,8 +341,6 @@ public class PlayService extends Service {
                 .setAutoCancel(false).setOngoing(true);
         Class<?> targetClass = WelcomeActivity.class;
         Intent notificationIntent = new Intent(PlayService.this, targetClass);
-//        notificationIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
-//                | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(PlayService.this, 0,
                 notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         builder.setContentIntent(pendingIntent);
@@ -340,7 +369,7 @@ public class PlayService extends Service {
         contentView.setTextViewText(R.id.songName, title);
         contentView.setTextViewText(R.id.artist, description);
         boolean isPlaying = SimplePlayer.getInstance().isPlaying();
-        Log.d(TAG, "Notification is Playing?" + isPlaying);
+//        Log.d(TAG, "Notification is Playing?" + isPlaying);
         contentView.setImageViewResource(R.id.play_pause,
                 isPlaying ? R.drawable.notification_play_normal
                         : R.drawable.notification_pause_normal);
@@ -353,5 +382,26 @@ public class PlayService extends Service {
         startForeground(ID_NOTIFICATION, notification);
         NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         manager.notify(ID_NOTIFICATION, notification);
+    }
+
+    public class NetworkStateReceiver extends BroadcastReceiver {
+        public void onReceive(Context context, Intent intent) {
+            ConnectivityManager cm = (ConnectivityManager)
+                    context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkInfo networkInfo = cm.getActiveNetworkInfo();
+            if (networkInfo == null || com.hang.exoplayer.bean.Util.getNetType() == -1) {
+                if (SimplePlayer.getInstance().isPlaying()) {
+                    com.hang.exoplayer.bean.Util.saveStopPlayByLeaveNet();
+                    Toast.makeText(ExoApplication.getApplication(), "save", Toast.LENGTH_SHORT).show();
+                    com.hang.exoplayer.bean.Util.appendLog("saved");
+                    return;
+                }
+            }
+            if (com.hang.exoplayer.bean.Util.canPlay() && com.hang.exoplayer.bean.Util.clearStopPlayByLeaveNetLastTime()) {
+                play();
+                com.hang.exoplayer.bean.Util.appendLog("play");
+                Toast.makeText(ExoApplication.getApplication(), "play", Toast.LENGTH_LONG).show();
+            }
+        }
     }
 }

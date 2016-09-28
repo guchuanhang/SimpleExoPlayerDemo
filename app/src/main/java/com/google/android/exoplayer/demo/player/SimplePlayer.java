@@ -81,6 +81,9 @@ public class SimplePlayer implements
                 if (contentUri.toString().equals(sample.uri)) {
                     if (player == null) {
                         preparePlayer(true);
+                    } else if (player.getPlaybackState() == ExoPlayer.STATE_IDLE) {
+                        release();
+                        preparePlayer(true);
                     }
                     return;
                 }
@@ -190,7 +193,6 @@ public class SimplePlayer implements
 
     //when use click close from notification releasePlayer && cancel notification
     private void releasePlayer() {
-        sendPlayStatusBroadcast(false, false, false, false);
         if (player != null) {
             playerPosition = player.getCurrentPosition();
             player.release();
@@ -198,6 +200,7 @@ public class SimplePlayer implements
             eventLogger.endSession();
             eventLogger = null;
         }
+        sendPlayStatusBroadcast(false, false, false, false);
     }
 
     public void sendPlayStatusBroadcast(boolean isPlaying, boolean toSwitch, boolean isNext, boolean startPlay) {
