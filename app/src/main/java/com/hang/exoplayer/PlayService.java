@@ -26,6 +26,7 @@ import android.content.IntentFilter;
 import android.media.AudioManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.Binder;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -69,6 +70,7 @@ public class PlayService extends Service {
     PlayHandler playHandler;
     PlayStatusReceiver playStatusReceiver;
     NetworkStateReceiver networkStateReceiver;
+
     RemoteViews rm;
     public static final String REQUEST_CODE = "1111";
     public static final int PAUSE = 2;
@@ -77,7 +79,13 @@ public class PlayService extends Service {
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        return null;
+        return new Binder();
+    }
+
+    class Binder extends android.os.Binder {
+        public PlayService getService() {
+            return PlayService.this;
+        }
     }
 
     public static void loadMedia(Context packageContext, List<String> playingAddress, int position) {
@@ -115,6 +123,8 @@ public class PlayService extends Service {
         IntentFilter intentFilter = new IntentFilter(SimplePlayer.ACTION_PLAY_STUTUS);
         LocalBroadcastManager.getInstance(this).
                 registerReceiver(playStatusReceiver, intentFilter);
+        Log.d(TAG, "registerReceiver");
+
         HandlerThread playThread = new HandlerThread("exoplayer");
         playThread.start();
         playHandler = new PlayHandler(playThread.getLooper());
@@ -179,7 +189,7 @@ public class PlayService extends Service {
     private void play() {
         Message message = playHandler.obtainMessage();
         message.what = 1;
-        Samples.Sample sample = new Samples.Sample("", playAddresses.get(mCurrentPosition), Util.TYPE_HLS);
+        Samples.Sample sample = new Samples.Sample("", playAddresses.get(mCurrentPosition), Util.TYPE_OTHER);
 
         message.obj = sample;
         message.sendToTarget();
@@ -235,14 +245,17 @@ public class PlayService extends Service {
                 }
                 play();
             } else if (exitAction) {
+                Log.d(TAG, "start exitAction");
                 stopForeground(true);
                 pause();
                 if (playStatusReceiver != null) {
                     LocalBroadcastManager.getInstance(this).unregisterReceiver(playStatusReceiver);
                     playStatusReceiver = null;
+                    Log.d(TAG, "unregisterReceiver exitAction");
                 }
                 dismissNotification();
                 stopSelf();
+                Log.d(TAG, "end exitAction");
             } else if (previousAction) {
                 if (mCurrentPosition > 0) {
                     --mCurrentPosition;
@@ -318,11 +331,13 @@ public class PlayService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        Log.d(TAG, "onDestroy");
         if (networkStateReceiver != null) {
             unregisterReceiver(networkStateReceiver);
         }
         if (playStatusReceiver != null) {
             unregisterReceiver(playStatusReceiver);
+            Log.d(TAG, "unregisterReceiver");
         }
     }
 

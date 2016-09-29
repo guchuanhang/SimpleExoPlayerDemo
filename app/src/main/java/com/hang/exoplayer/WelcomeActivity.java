@@ -17,12 +17,15 @@ package com.hang.exoplayer;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.IBinder;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.LocalBroadcastManager;
 import android.view.View;
@@ -71,8 +74,8 @@ public class WelcomeActivity extends FragmentActivity implements View.OnClickLis
             case R.id.btn_resume: {
 //                String muzhiLive=
 //                        "http://living.muzhifm.com/muzhifm/jnxw1066.m3u8?auth_key=1480301650-0-0-f92ad1bc8b31d09ff37249205d7dbd59";
-                String nativeM3U8 = "file://" + Environment.getExternalStorageDirectory() + File.separator + "test.m3u8";
-                List<String> playingAddressList = Arrays.asList(new String[]{muzhiLive});
+                String nativeM3U8 = "file://" + Environment.getExternalStorageDirectory() + File.separator + "test.mp3";
+                List<String> playingAddressList = Arrays.asList(new String[]{nativeM3U8});
                 PlayService.loadMedia(this, playingAddressList, 0);
                 break;
             }
@@ -89,6 +92,21 @@ public class WelcomeActivity extends FragmentActivity implements View.OnClickLis
     SeekBar seekBar;
     PlayStatusReceiver playStatusReceiver;
     ImageView playStatusView;
+    PlayService mPlayService;
+    PlayServiceConnection mPlayServiceConnection;
+
+    class PlayServiceConnection implements ServiceConnection {
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+            mPlayService = ((PlayService.Binder) iBinder).getService();
+
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+            mPlayService = null;
+        }
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -101,7 +119,9 @@ public class WelcomeActivity extends FragmentActivity implements View.OnClickLis
         seekBar.setOnSeekBarChangeListener(this);
         playStatusView = (ImageView) findViewById(R.id.iv_status);
         playStatusReceiver = new PlayStatusReceiver();
-
+        Intent intent = new Intent(WelcomeActivity.this, PlayService.class);
+        mPlayServiceConnection = new PlayServiceConnection();
+        bindService(intent, mPlayServiceConnection, Context.BIND_AUTO_CREATE);
     }
 
 
@@ -148,6 +168,15 @@ public class WelcomeActivity extends FragmentActivity implements View.OnClickLis
         }
         LocalBroadcastManager.getInstance(this).unregisterReceiver(playStatusReceiver);
 
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (mPlayServiceConnection != null) {
+            unbindService(mPlayServiceConnection);
+            mPlayServiceConnection = null;
+        }
+        super.onDestroy();
     }
 
     @Override
