@@ -235,11 +235,13 @@ public class PlayService extends Service {
                 }
                 play();
             } else if (exitAction) {
+                stopForeground(true);
                 pause();
-                SimplePlayer.getInstance().sendExitBroadcast();
                 if (playStatusReceiver != null) {
                     LocalBroadcastManager.getInstance(this).unregisterReceiver(playStatusReceiver);
+                    playStatusReceiver = null;
                 }
+                dismissNotification();
                 stopSelf();
             } else if (previousAction) {
                 if (mCurrentPosition > 0) {
@@ -307,11 +309,7 @@ public class PlayService extends Service {
                         }
                     }
                 }
-                if (intent.getBooleanExtra(SimplePlayer.ACTION_SERVICE_EXISTS, false)) {
-                    dismissNotification();
-                } else {
-                    showNotification();
-                }
+                showNotification();
             }
         }
 

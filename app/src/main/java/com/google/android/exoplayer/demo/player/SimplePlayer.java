@@ -56,7 +56,6 @@ public class SimplePlayer implements
     public static final String KEY_SWITCH = "audio switch";
     public static final String KEY_IS_NEXT = "to next";
     public static final String KEY_START_PLAY = "start play";
-    public static final String ACTION_SERVICE_EXISTS = "exist play service";
 
     private SimplePlayer() {
         appContext = ExoApplication.getApplication();
@@ -210,13 +209,6 @@ public class SimplePlayer implements
         intent.putExtra(KEY_SWITCH, toSwitch);
         intent.putExtra(KEY_IS_NEXT, isNext);
         intent.putExtra(KEY_START_PLAY, startPlay);
-        LocalBroadcastManager.getInstance(appContext).sendBroadcast(intent);
-    }
-
-    public void sendExitBroadcast() {
-        Intent intent = new Intent();
-        intent.setAction(ACTION_PLAY_STUTUS);
-        intent.putExtra(ACTION_SERVICE_EXISTS, true);
         LocalBroadcastManager.getInstance(appContext).sendBroadcast(intent);
     }
 
