@@ -2,7 +2,6 @@
 // Ensuring proper cleanup.
 package com.hang.exoplayer.bean;
 
-import com.hang.exoplayer.WelcomeActivity;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -25,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 
 public class QueryLiveProgramList {
+    public static final String TYPE_MUZHI = "MUZHI";
+    public static final String TYPE_QINGTING = "QINGQING";
     public static final String BASE_URL = "http://www.dingdongfm.com/DingDongFM/servlet/MobileServlet";
 
     public static String getLiveAddress(String liveType) {
@@ -44,7 +45,7 @@ public class QueryLiveProgramList {
             Type type = new TypeToken<List<MediaBean>>() {
             }.getType();
             List<MediaBean> mediaList = new Gson().fromJson(responseBean.getResponseObject().get("D_Media"), type);
-            if (WelcomeActivity.TYPE_QINGTING.equals(liveType)) {
+            if (TYPE_QINGTING.equals(liveType)) {
                 return mediaList.get(0).getMediaUrl();
             }
             return mediaList.get(0).getMediaDynamicUrl();
