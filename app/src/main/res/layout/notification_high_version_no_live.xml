@@ -61,7 +61,7 @@
                 android:contentDescription="@null"
                 android:paddingBottom="8dp"
                 android:scaleType="fitCenter"
-                android:src="@drawable/notification_exit_normal" />
+                android:src="@drawable/ic_noti_exit_normal" />
         </RelativeLayout>
 
         <ImageView
@@ -85,7 +85,7 @@
                 android:background="#00ffffff"
                 android:contentDescription="@null"
                 android:scaleType="fitCenter"
-                android:src="@drawable/notification_pre_normal" />
+                android:src="@drawable/ic_noti_pre_normal" />
 
             <ImageView
                 android:id="@+id/play_pause"
@@ -95,7 +95,7 @@
                 android:background="#00ffffff"
                 android:contentDescription="@null"
                 android:scaleType="fitCenter"
-                android:src="@drawable/notification_pause_normal" />
+                android:src="@drawable/ic_noti_pause_normal" />
 
             <ImageView
                 android:id="@+id/forward"
@@ -105,7 +105,7 @@
                 android:background="#00ffffff"
                 android:contentDescription="@null"
                 android:scaleType="fitCenter"
-                android:src="@drawable/notification_next_normal" />
+                android:src="@drawable/ic_noti_next_normal" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

@@ -9,13 +9,12 @@
 
     <application
         android:name=".player.ExoApplication"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-        <activity android:name="com.hang.exoplayer.WelcomeActivity">
+        <activity android:name="com.hang.exoplayer.PlayActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

@@ -13,12 +13,19 @@
         android:id="@+id/tv_title_wifi"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="仅wifi播放" />
+        android:text="仅wifi play" />
 
     <ToggleButton
         android:id="@+id/tgbtn_wifi"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@id/tv_title_wifi" />
+
+    <Button
+        android:id="@+id/btn_exit"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tgbtn_wifi"
+        android:text="Exit APP" />
 
 </RelativeLayout>

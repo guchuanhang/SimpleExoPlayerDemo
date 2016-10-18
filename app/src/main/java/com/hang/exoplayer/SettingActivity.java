@@ -4,6 +4,7 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
+import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.ToggleButton;
 
@@ -20,6 +21,14 @@ public class SettingActivity extends AppCompatActivity implements CompoundButton
         onlyWifiPlayView = (ToggleButton) findViewById(R.id.tgbtn_wifi);
         onlyWifiPlayView.setOnCheckedChangeListener(this);
         initData();
+        findViewById(R.id.btn_exit).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                android.os.Process.killProcess(android.os.Process.myPid());
+                System.exit(1);
+
+            }
+        });
     }
 
     private void initData() {

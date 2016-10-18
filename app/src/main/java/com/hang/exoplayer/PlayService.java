@@ -26,7 +26,7 @@ import android.content.IntentFilter;
 import android.media.AudioManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.os.Binder;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -70,12 +70,6 @@ public class PlayService extends Service {
     PlayHandler playHandler;
     PlayStatusReceiver playStatusReceiver;
     NetworkStateReceiver networkStateReceiver;
-
-    RemoteViews rm;
-    public static final String REQUEST_CODE = "1111";
-    public static final int PAUSE = 2;
-    public static final int NOTIFICATION_ID = 123;
-
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
@@ -180,16 +174,20 @@ public class PlayService extends Service {
         return result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
     }
 
-    private void pause() {
+    public void pause() {
         Message message = playHandler.obtainMessage();
         message.what = 2;
         message.sendToTarget();
     }
 
-    private void play() {
+    public void play() {
         Message message = playHandler.obtainMessage();
         message.what = 1;
-        Samples.Sample sample = new Samples.Sample("", playAddresses.get(mCurrentPosition), Util.TYPE_OTHER);
+        int playType = Util.TYPE_HLS;
+        if (playAddresses.get(mCurrentPosition).startsWith("file://")) {
+            playType = Util.TYPE_OTHER;
+        }
+        Samples.Sample sample = new Samples.Sample("", playAddresses.get(mCurrentPosition), playType);
 
         message.obj = sample;
         message.sendToTarget();
@@ -210,12 +208,16 @@ public class PlayService extends Service {
     public void next() {
         if (mCurrentPosition < playAddresses.size() - 1) {
             SimplePlayer.getInstance().sendPlayStatusBroadcast(false, true, true, false);
+        } else {
+            Toast.makeText(this, "已经是最后一首啦~", Toast.LENGTH_SHORT).show();
         }
     }
 
     public void previous() {
         if (mCurrentPosition > 0) {
             SimplePlayer.getInstance().sendPlayStatusBroadcast(false, true, false, false);
+        } else {
+            Toast.makeText(this, "已经是第一首啦~", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -278,11 +280,11 @@ public class PlayService extends Service {
 
 
     class PlayHandler extends Handler {
-        SimplePlayer playService;
+        SimplePlayer player;
 
         public PlayHandler(Looper looper) {
             super(looper);
-            this.playService = SimplePlayer.getInstance();
+            this.player = SimplePlayer.getInstance();
         }
 
         @Override
@@ -291,11 +293,11 @@ public class PlayService extends Service {
             switch (msg.what) {
                 case 1: {
                     Samples.Sample sample = (Samples.Sample) msg.obj;
-                    playService.play(sample);
+                    player.play(sample);
                     break;
                 }
                 case 2: {
-                    playService.release();
+                    player.releasePlayer();
                     break;
                 }
 
@@ -322,7 +324,22 @@ public class PlayService extends Service {
                         }
                     }
                 }
-                showNotification();
+                new AsyncTask<Void, Void, Void>() {
+                    @Override
+                    protected Void doInBackground(Void... voids) {
+                        try {
+                            Thread.sleep(5000);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        return null;
+                    }
+
+                    @Override
+                    protected void onPostExecute(Void aVoid) {
+                        showNotification();
+                    }
+                }.execute();
             }
         }
 
@@ -352,7 +369,7 @@ public class PlayService extends Service {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(
                 PlayService.this)
                 .setAutoCancel(false).setOngoing(true);
-        Class<?> targetClass = WelcomeActivity.class;
+        Class<?> targetClass = PlayActivity.class;
         Intent notificationIntent = new Intent(PlayService.this, targetClass);
         PendingIntent pendingIntent = PendingIntent.getActivity(PlayService.this, 0,
                 notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
@@ -384,13 +401,14 @@ public class PlayService extends Service {
         boolean isPlaying = SimplePlayer.getInstance().isPlaying();
 //        Log.d(TAG, "Notification is Playing?" + isPlaying);
         contentView.setImageViewResource(R.id.play_pause,
-                isPlaying ? R.drawable.notification_play_normal
-                        : R.drawable.notification_pause_normal);
+                isPlaying ? R.drawable.ic_noti_play_normal
+                        : R.drawable.ic_noti_pause_normal);
         contentView.setOnClickPendingIntent(R.id.play_pause, playPendingIntent);
         contentView.setOnClickPendingIntent(R.id.play_pre, previousPendingIntent);
         contentView.setOnClickPendingIntent(R.id.forward, nextPendingIntent);
         contentView.setOnClickPendingIntent(R.id.stop, dismissPendingIntent);
-        builder.setCustomContentView(contentView);
+//        builder.setCustomContentView(contentView);
+        builder.setContent(contentView);
         Notification notification = builder.setSmallIcon(R.mipmap.ic_launcher).build();
         startForeground(ID_NOTIFICATION, notification);
         NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);

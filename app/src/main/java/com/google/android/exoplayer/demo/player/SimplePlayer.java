@@ -68,10 +68,6 @@ public class SimplePlayer implements
         return servicePlayer;
     }
 
-    public void release() {
-        releasePlayer();
-    }
-
     //        Samples.Sample sample = new Samples.Sample("", playAddress, Util.TYPE_OTHER);
     public void play(Samples.Sample sample) {
         if (sample != null) {
@@ -81,7 +77,7 @@ public class SimplePlayer implements
                     if (player == null) {
                         preparePlayer(true);
                     } else if (player.getPlaybackState() == ExoPlayer.STATE_IDLE) {
-                        release();
+                        releasePlayer();
                         preparePlayer(true);
                     }
                     return;
@@ -134,7 +130,18 @@ public class SimplePlayer implements
     private String provider = "";
 
     public boolean isPlaying() {
-        return player != null;
+        return player != null && (player.getPlaybackState() == ExoPlayer.STATE_BUFFERING ||
+                player.getPlaybackState() == ExoPlayer.STATE_READY
+                || player.getPlaybackState() == ExoPlayer.STATE_PREPARING);
+    }
+
+    public boolean isPlaying(String targetPlayingUrl) {
+        if (isPlaying()) {
+            if (contentUri != null && contentUri.toString().equals(targetPlayingUrl)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public double getProgress() {
@@ -149,8 +156,6 @@ public class SimplePlayer implements
         playerPosition = (long) (progress * player.getDuration());
         player.seekTo(playerPosition);
     }
-
-// Internal methods
 
     private RendererBuilder getRendererBuilder() {
         String userAgent = Util.getUserAgent(appContext, "ExoPlayerDemo");
@@ -190,8 +195,7 @@ public class SimplePlayer implements
         player.setPlayWhenReady(playWhenReady);
     }
 
-    //when use click close from notification releasePlayer && cancel notification
-    private void releasePlayer() {
+    public void releasePlayer() {
         if (player != null) {
             playerPosition = player.getCurrentPosition();
             player.release();
